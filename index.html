@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Election Simulation</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #444;
+            border-radius: 10px;
+        }
+
+        #plane {
+            width: 500px;
+            height: 500px;
+            border: 1px solid #fff;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .mode-label {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .mode-label select {
+            background-color: #555;
+            color: #fff;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .voting-system-label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .voting-system-label select {
+            background-color: #555;
+            color: #fff;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .result-button {
+            display: block;
+            margin: 0 auto;
+            background-color: #555;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .result-button:hover {
+            background-color: #777;
+        }
+
+        .winner-label {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .winner-label span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Election Simulation</h1>
+        <div class="mode-label">
+            <label for="mode">Select mode:</label>
+            <select id="mode">
+                <option value="candidates">Add candidates</option>
+                <option value="voters">Add voters</option>
+            </select>
+        </div>
+        <div id="plane"></div>
+        <div class="voting-system-label">
+            <label for="votingSystem">Select voting system:</label>
+            <select id="votingSystem">
+                <option value="firstPastThePost">First Past the Post</option>
+            </select>
+        </div>
+        <button class="result-button" id="getResult">Get Result</button>
+        <div class="winner-label" id="winnerLabel"></div>
+    </div>
+
+    <script>
+        var mode = "candidates";
+        var candidates = [];
+        var voters = [];
+
+        function addCandidate(x, y) {
+            var candidate = {
+                x: x,
+                y: y,
+                color: getUniqueColor()
+            };
+            candidates.push(candidate);
+            drawCandidate(candidate);
+        }
+
+        function addVoter(x, y) {
+            var voter = {
+                x: x,
+                y: y
+            };
+            voters.push(voter);
+            drawVoter(voter);
+        }
+
+        function drawCandidate(candidate) {
+            var plane = document.getElementById("plane");
+            var candidateElem = document.createElement("div");
+            candidateElem.style.position = "absolute";
+            candidateElem.style.left = candidate.x + "px";
+            candidateElem.style.top = candidate.y + "px";
+            candidateElem.style.width = "10px";
+            candidateElem.style.height = "10px";
+            candidateElem.style.backgroundColor = candidate.color;
+            plane.appendChild(candidateElem);
+        }
+
+        function drawVoter(voter) {
+            var plane = document.getElementById("plane");
+            var voterElem = document.createElement("div");
+            voterElem.style.position = "absolute";
+            voterElem.style.left = voter.x + "px";
+            voterElem.style.top = voter.y + "px";
+            voterElem.style.width = "5px";
+            voterElem.style.height = "5px";
+            voterElem.style.backgroundColor = "#fff";
+            plane.appendChild(voterElem);
+        }
+
+        function getUniqueColor() {
+            var usedColors = candidates.map(function (candidate) {
+                return candidate.color;
+            });
+
+            var colors = [
+                { code: "#ff4136", name: "Red" },
+                { code: "#2ecc40", name: "Green" },
+                { code: "#0074d9", name: "Blue" },
+                { code: "#ffdc00", name: "Yellow" },
+                { code: "#ff851b", name: "Orange" },
+                { code: "#b10dc9", name: "Purple" },
+                { code: "#85144b", name: "Maroon" },
+                { code: "#39cccc", name: "Teal" },
+                { code: "#3d9970", name: "Olive" },
+                { code: "#0074d9", name: "Navy" },
+                { code: "#01ff70", name: "Lime" },
+                { code: "#001f3f", name: "Navy" },
+                { code: "#b10dc9", name: "Purple" },
+                { code: "#ff851b", name: "Orange" },
+                { code: "#7fdbff", name: "Aqua" },
+                { code: "#f012be", name: "Fuchsia" }
+            ];
+
+            for (var i = 0; i < colors.length; i++) {
+                var color = colors[i];
+                if (!usedColors.includes(color.code)) {
+                    return color.code;
+                }
+            }
+
+            // If none of the named colors are available, generate a random color
+            var randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+            return randomColor;
+        }
+
+        function calculateFirstPastThePostResult() {
+            var result = {};
+
+            for (var i = 0; i < voters.length; i++) {
+                var voter = voters[i];
+                var nearestCandidateIndex = 0;
+                var minDistance = distance(voter, candidates[0]);
+
+                for (var j = 1; j < candidates.length; j++) {
+                    var dist = distance(voter, candidates[j]);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestCandidateIndex = j;
+                    }
+                }
+
+                var nearestCandidate = candidates[nearestCandidateIndex];
+                if (result[nearestCandidate.color]) {
+                    result[nearestCandidate.color]++;
+                } else {
+                    result[nearestCandidate.color] = 1;
+                }
+            }
+
+            var winnerColor = "";
+            var maxVotes = 0;
+            for (var color in result) {
+                if (result[color] > maxVotes) {
+                    maxVotes = result[color];
+                    winnerColor = color;
+                }
+            }
+
+            var winnerLabel = document.getElementById("winnerLabel");
+            winnerLabel.innerHTML = "";
+            var colorBox = document.createElement("div");
+            colorBox.style.backgroundColor = winnerColor;
+            colorBox.style.width = "20px";
+            colorBox.style.height = "20px";
+            colorBox.style.display = "inline-block";
+            winnerLabel.appendChild(colorBox);
+
+            var colorName = getEnglishColorName(winnerColor);
+            var resultText = document.createElement("span");
+            resultText.textContent = "Winner: " + colorName + " (" + maxVotes + " votes)";
+            winnerLabel.appendChild(resultText);
+        }
+
+        function distance(point1, point2) {
+            var dx = point2.x - point1.x;
+            var dy = point2.y - point1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getEnglishColorName(color) {
+            switch (color) {
+                case "#ff4136":
+                    return "Red";
+                case "#2ecc40":
+                    return "Green";
+                case "#0074d9":
+                    return "Blue";
+                case "#ffdc00":
+                    return "Yellow";
+                case "#ff851b":
+                    return "Orange";
+                case "#b10dc9":
+                    return "Purple";
+                case "#85144b":
+                    return "Maroon";
+                case "#39cccc":
+                    return "Teal";
+                case "#3d9970":
+                    return "Olive";
+                case "#0074d9":
+                    return "Navy";
+                case "#01ff70":
+                    return "Lime";
+                case "#001f3f":
+                    return "Navy";
+                case "#b10dc9":
+                    return "Purple";
+                case "#ff851b":
+                    return "Orange";
+                case "#7fdbff":
+                    return "Aqua";
+                case "#f012be":
+                    return "Fuchsia";
+                default:
+                    return color;
+            }
+        }
+
+        document.getElementById("mode").addEventListener("change", function () {
+            mode = this.value;
+        });
+
+        document.getElementById("getResult").addEventListener("click", function () {
+            var votingSystem = document.getElementById("votingSystem").value;
+
+            if (votingSystem === "firstPastThePost") {
+                calculateFirstPastThePostResult();
+            }
+        });
+
+        document.getElementById("plane").addEventListener("click", function (event) {
+            var rect = event.target.getBoundingClientRect();
+            var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            var x = event.pageX - rect.left - scrollLeft;
+            var y = event.pageY - rect.top - scrollTop;
+
+            if (mode === "candidates") {
+                addCandidate(x, y);
+            } else if (mode === "voters") {
+                addVoter(x, y);
+            }
+        });
+
+        document.getElementById("plane").addEventListener("mousemove", function (event) {
+            if (mode === "voters" && event.buttons === 1) {
+                var rect = event.target.getBoundingClientRect();
+                var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                var x = event.pageX - rect.left - scrollLeft;
+                var y = event.pageY - rect.top - scrollTop;
+                addVoter(x, y);
+            }
+        });
+    </script>
+</body>
+</html>
