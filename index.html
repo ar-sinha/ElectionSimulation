@@ -97,6 +97,7 @@
             <label for="votingSystem">Select voting system:</label>
             <select id="votingSystem">
                 <option value="firstPastThePost">First Past the Post</option>
+                <option value="twoRoundRunoff">Two-Round Runoff</option>
             </select>
         </div>
         <button class="result-button" id="getResult">Get Result</button>
@@ -314,6 +315,106 @@
                 var x = event.pageX - rect.left - scrollLeft;
                 var y = event.pageY - rect.top - scrollTop;
                 addVoter(x, y);
+            }
+        });
+
+        function calculateTwoRoundRunoffResult() {
+            var result = {};
+
+            for (var i = 0; i < voters.length; i++) {
+                var voter = voters[i];
+                var nearestCandidateIndex = 0;
+                var minDistance = distance(voter, candidates[0]);
+
+                for (var j = 1; j < candidates.length; j++) {
+                    var dist = distance(voter, candidates[j]);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestCandidateIndex = j;
+                    }
+                }
+
+                var nearestCandidate = candidates[nearestCandidateIndex];
+                if (result[nearestCandidate.color]) {
+                    result[nearestCandidate.color]++;
+                } else {
+                    result[nearestCandidate.color] = 1;
+                }
+            }
+
+            var resultText = "<h2>Round 1 Results</h2>";
+            for (var color in result) {
+                var colorName = getEnglishColorName(color);
+                resultText += colorName + ": " + result[color] + " votes<br>";
+            }
+
+            var sortedCandidates = candidates.slice().sort(function (a, b) {
+                return result[b.color] - result[a.color];
+            });
+
+            var topCandidates = sortedCandidates.slice(0, 2);
+
+            var result2 = {};
+            for (var i = 0; i < voters.length; i++) {
+                var voter = voters[i];
+                var nearestCandidateIndex = 0;
+                var minDistance = distance(voter, topCandidates[0]);
+
+                for (var j = 1; j < topCandidates.length; j++) {
+                    var dist = distance(voter, topCandidates[j]);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestCandidateIndex = j;
+                    }
+                }
+
+                var nearestCandidate = topCandidates[nearestCandidateIndex];
+                if (result2[nearestCandidate.color]) {
+                    result2[nearestCandidate.color]++;
+                } else {
+                    result2[nearestCandidate.color] = 1;
+                }
+            }
+
+            var secondRoundWinnerColor = "";
+            var maxVotes2 = 0;
+            for (var color in result2) {
+                if (result2[color] > maxVotes2) {
+                    maxVotes2 = result2[color];
+                    secondRoundWinnerColor = color;
+                }
+            }
+
+            resultText += "<h2>Round 2 Results</h2>";
+            resultText += getEnglishColorName(topCandidates[0].color) + ": " + result2[topCandidates[0].color] + " votes<br>";
+            resultText += getEnglishColorName(topCandidates[1].color) + ": " + result2[topCandidates[1].color] + " votes<br>";
+
+            var winnerLabel = document.getElementById("winnerLabel");
+            winnerLabel.innerHTML = resultText;
+
+            var finalWinnerLabel = document.createElement("div");
+            finalWinnerLabel.style.textAlign = "center";
+            var finalWinnerColorBox = document.createElement("div");
+            finalWinnerColorBox.style.backgroundColor = secondRoundWinnerColor;
+            finalWinnerColorBox.style.width = "20px";
+            finalWinnerColorBox.style.height = "20px";
+            finalWinnerColorBox.style.display = "inline-block";
+            finalWinnerLabel.appendChild(finalWinnerColorBox);
+            var finalWinnerColorName = getEnglishColorName(secondRoundWinnerColor);
+            var finalWinnerText = document.createElement("span");
+            finalWinnerText.style.fontWeight = "bold";
+            finalWinnerText.textContent = "Final Winner: " + finalWinnerColorName;
+            finalWinnerLabel.appendChild(finalWinnerText);
+            winnerLabel.appendChild(finalWinnerLabel);
+        }
+
+        document.getElementById("getResult").addEventListener("click", function () {
+            var votingSystem = document.getElementById("votingSystem").value;
+
+            if (votingSystem === "firstPastThePost") {
+                calculateFirstPastThePostResult();
+            } else if (votingSystem === "twoRoundRunoff") {
+                calculateTwoRoundRunoffResult();
             }
         });
     </script>
