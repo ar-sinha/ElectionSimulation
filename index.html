@@ -156,6 +156,7 @@
             <select id="votingSystem">
                 <option value="firstPastThePost">First Past the Post</option>
                 <option value="twoRoundRunoff">Two-Round Runoff</option>
+                <option value="proposedSystem">Proposed System</option>
             </select>
         </div>
         <button class="result-button" id="getResult">Get Result</button>
@@ -488,6 +489,168 @@
             winnerLabel.appendChild(finalWinnerLabel);
         }
 
+        
+
+        
+
+        function calculateProposedSystemResult() {
+            var result = {};
+            var candidateColors = candidates.map(candidate => candidate.color);
+
+            // Initialize the result object with zero votes for all candidates
+            candidateColors.forEach(color => result[color] = 0);
+
+            // Compare each pair of candidates
+            for (var i = 0; i < candidateColors.length; i++) {
+                for (var j = i + 1; j < candidateColors.length; j++) {
+                    var candidateA = candidateColors[i];
+                    var candidateB = candidateColors[j];
+                    var votesForA = 0;
+                    var votesForB = 0;
+
+                    // Count votes for each candidate in the pair
+                    for (var k = 0; k < voters.length; k++) {
+                        var voter = voters[k];
+                        var distA = distance(voter, getCandidateByColor(candidateA));
+                        var distB = distance(voter, getCandidateByColor(candidateB));
+
+                        if (distA < distB) {
+                            votesForA++;
+                        } else if (distB < distA) {
+                            votesForB++;
+                        }
+                    }
+
+                    // Determine the winner of the pair
+                    var winner;
+                    var loser;
+                    if (votesForA > votesForB) {
+                        winner = candidateA;
+                        loser = candidateB;
+                    } else if (votesForB > votesForA) {
+                        winner = candidateB;
+                        loser = candidateA;
+                    }
+
+                    // Update the result object
+                    result[winner]++;
+                }
+            }
+
+            // Create a ranked array of candidates based on strength of victory
+            var rankedCandidates = candidateColors.sort(function(a, b) {
+                return result[b] - result[a];
+            });
+
+            // Initialize the graph
+            var graph = [];
+
+            // Iterate through the ranked candidates and build the graph
+            for (var i = 0; i < rankedCandidates.length; i++) {
+                var candidateA = rankedCandidates[i];
+
+                for (var j = i + 1; j < rankedCandidates.length; j++) {
+                    var candidateB = rankedCandidates[j];
+                    var votesForA = 0;
+                    var votesForB = 0;
+
+                    // Count votes for each candidate in the pair
+                    for (var k = 0; k < voters.length; k++) {
+                        var voter = voters[k];
+                        var distA = distance(voter, getCandidateByColor(candidateA));
+                        var distB = distance(voter, getCandidateByColor(candidateB));
+
+                        if (distA < distB) {
+                            votesForA++;
+                        } else if (distB < distA) {
+                            votesForB++;
+                        }
+                    }
+
+                    // Determine the winner of the pair
+                    var winner;
+                    var loser;
+                    if (votesForA > votesForB) {
+                        winner = candidateA;
+                        loser = candidateB;
+                    } else if (votesForB > votesForA) {
+                        winner = candidateB;
+                        loser = candidateA;
+                    }
+
+                    // Check if adding this pair creates a cycle in the graph
+                    if (!createsCycle(graph, winner, loser)) {
+                        // Add this pair to the graph
+                        graph.push([winner, loser]);
+                    }
+                }
+            }
+
+            // Create the final ranking based on the graph
+            var finalRanking = [];
+
+            // Iterate through the ranked candidates and add them to the final ranking
+            for (var i = 0; i < rankedCandidates.length; i++) {
+                var candidate = rankedCandidates[i];
+                if (finalRanking.indexOf(candidate) === -1) {
+                    finalRanking.push(candidate);
+                }
+            }
+
+            // Display the final ranking
+            var winnerLabel = document.getElementById("winnerLabel");
+            winnerLabel.innerHTML = "Winner: ";
+            finalRanking.forEach(function(candidate, index) {
+                var colorBox = document.createElement("div");
+                colorBox.style.backgroundColor = candidate;
+                colorBox.style.width = "20px";
+                colorBox.style.height = "20px";
+                colorBox.style.display = "inline-block";
+                winnerLabel.appendChild(colorBox);
+
+                winnerLabel.innerHTML += getEnglishColorName(candidate);
+                if (index < finalRanking.length - 1) {
+                    winnerLabel.innerHTML += ", ";
+                }
+            });
+        }
+
+        function getCandidateByColor(color) {
+            for (var i = 0; i < candidates.length; i++) {
+                if (candidates[i].color === color) {
+                    return candidates[i];
+                }
+            }
+            return null;
+        }
+
+
+
+        function createsCycle(graph, candidateA, candidateB) {
+            // Create a copy of the graph with the new pair added
+            var newGraph = graph.slice();
+            newGraph.push([candidateA, candidateB]);
+            
+            // Check if adding this pair creates a cycle using depth-first search
+            var visited = {};
+            var stack = [candidateA];
+            
+            while (stack.length > 0) {
+                var node = stack.pop();
+                visited[node] = true;
+                
+                for (var i = 0; i < newGraph.length; i++) {
+                    var pair = newGraph[i];
+                    if (pair[0] === node && !visited[pair[1]]) {
+                        stack.push(pair[1]);
+                    }
+                }
+            }
+            
+            // Check if candidateB is reachable from candidateA in the new graph
+            return visited[candidateB] === true;
+        }
+
         document.getElementById("getResult").addEventListener("click", function () {
             var votingSystem = document.getElementById("votingSystem").value;
 
@@ -495,6 +658,8 @@
                 calculateFirstPastThePostResult();
             } else if (votingSystem === "twoRoundRunoff") {
                 calculateTwoRoundRunoffResult();
+            } else if (votingSystem === 'proposedSystem'){
+                calculateProposedSystemResult();
             }
         });
     </script>
